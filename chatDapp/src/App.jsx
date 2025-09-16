@@ -3,8 +3,8 @@ import { MessageCircle, User, Wallet, Send, CheckCircle, AlertTriangle, Loader2 
 import ENS_CONTRACT_ABI from "./constants/ENS_ABI.json"
 import CHAT_CONTRACT_ABI from "./constants/Chat_ABI.json"
 
-const ENS_CONTRACT_ADDRESS = "0x99a1Ade794A78a31Eb5B7393fa39cd0Ee3843c8C"; // Example address
-const CHAT_CONTRACT_ADDRESS = "0x6900E41257aB091d5950A5910d939E8B8E5C8D4F"; // Example address
+const ENS_CONTRACT_ADDRESS = "0x99a1Ade794A78a31Eb5B7393fa39cd0Ee3843c8C";
+const CHAT_CONTRACT_ADDRESS = "0x6900E41257aB091d5950A5910d939E8B8E5C8D4F";
 
 const Web3ChatENS = () => {
   // Wallet connection state
@@ -34,7 +34,6 @@ const Web3ChatENS = () => {
   const detectWallets = useCallback(() => {
     const discoveredWallets = [];
 
-    // Listen for wallet announcements
     const handleWalletAnnouncement = (event) => {
       discoveredWallets.push(event.detail);
       setWallets([...discoveredWallets]);
@@ -42,21 +41,7 @@ const Web3ChatENS = () => {
 
     window.addEventListener('eip6963:announceProvider', handleWalletAnnouncement);
 
-    // Request wallet announcements
     window.dispatchEvent(new Event('eip6963:requestProvider'));
-
-    // Fallback for MetaMask if EIP-6963 not supported
-    if (typeof window.ethereum !== 'undefined' && !discoveredWallets.length) {
-      const legacyWallet = {
-        info: {
-          name: 'MetaMask',
-          icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48L3N2Zz4='
-        },
-        provider: window.ethereum
-      };
-      discoveredWallets.push(legacyWallet);
-      setWallets([legacyWallet]);
-    }
 
     return () => {
       window.removeEventListener('eip6963:announceProvider', handleWalletAnnouncement);
@@ -109,9 +94,9 @@ const Web3ChatENS = () => {
 
       // Check if user already has a registered name
       try {
-        const existingName = await ens.resolveAddressToName(address);
-        if (existingName) {
-          setCustomName(existingName);
+        const userInfo = await ens.getUserFromAddress(address);
+        if (userInfo && userInfo.name) {
+          setCustomName(userInfo.name);
         }
       } catch (err) {
         console.log('No existing name found', err);
@@ -131,24 +116,26 @@ const Web3ChatENS = () => {
 
   // Load chat messages
   const loadMessages = async () => {
-    if (!chatContract) return;
+    if (!chatContract || !ensContract) return;
 
     try {
-      const roomId = 0; // General room
-      const limit = 50;
-      const offset = 0;
-      
-      const messages = await chatContract.getRoomMessages(roomId, offset, limit);
+      const messages = await chatContract.getUserMessages();
       
       const formattedMessages = await Promise.all(
         messages.map(async (msg) => {
-          const displayName = await chatContract.getSenderDisplayName(msg.sender);
+          // Get sender's ENS name
+          const senderInfo = await ensContract.getUserFromAddress(msg.from);
+          // Get recipient's ENS name
+          const recipientInfo = await ensContract.getUserFromAddress(msg.to);
+          
           return {
-            id: msg.messageId.toString(),
-            sender: displayName || `${msg.sender.slice(0, 6)}...${msg.sender.slice(-4)}`,
-            senderAddress: msg.sender,
-            content: msg.content,
-            timestamp: new Date(Number(msg.timestamp) * 1000).toLocaleTimeString()
+            id: msg.from + msg.to + msg.message, // Create a unique ID from message data
+            sender: senderInfo.name || `${msg.from.slice(0, 6)}...${msg.from.slice(-4)}`,
+            recipient: recipientInfo.name || `${msg.to.slice(0, 6)}...${msg.to.slice(-4)}`,
+            senderAddress: msg.from,
+            recipientAddress: msg.to,
+            content: msg.message,
+            timestamp: new Date().toLocaleTimeString() // Since timestamp isn't in the contract
           };
         })
       );
@@ -161,18 +148,24 @@ const Web3ChatENS = () => {
 
   // Listen for new messages
   const listenForMessages = (contract) => {
-    if (!contract) return;
+    if (!contract || !ensContract) return;
 
-    const filter = contract.filters.MessageSent(0); // Room 0
-    contract.on(filter, async (roomId, sender, content, timestamp, event) => {
+    const filter = contract.filters.MessageSent();
+    contract.on(filter, async (from, to, message, event) => {
       try {
-        const displayName = await contract.getSenderDisplayName(sender);
+        // Get sender's ENS name
+        const senderInfo = await ensContract.getUserFromAddress(from);
+        // Get recipient's ENS name
+        const recipientInfo = await ensContract.getUserFromAddress(to);
+
         const newMessage = {
           id: event.log.transactionHash + event.log.logIndex,
-          sender: displayName || `${sender.slice(0, 6)}...${sender.slice(-4)}`,
-          senderAddress: sender,
-          content: content,
-          timestamp: new Date(Number(timestamp) * 1000).toLocaleTimeString()
+          sender: senderInfo.name || `${from.slice(0, 6)}...${from.slice(-4)}`,
+          recipient: recipientInfo.name || `${to.slice(0, 6)}...${to.slice(-4)}`,
+          senderAddress: from,
+          recipientAddress: to,
+          content: message,
+          timestamp: new Date().toLocaleTimeString()
         };
         
         setMessages(prev => [...prev, newMessage]);
@@ -197,19 +190,15 @@ const Web3ChatENS = () => {
       const name = registrationInput.trim().toLowerCase();
       
       // Check if name is available
-      const isAvailable = await ensContract.isNameAvailable(name);
-      if (!isAvailable) {
+      const isNameTaken = await ensContract.usernameExist(name);
+      if (isNameTaken) {
         setError('This name is already taken');
         return;
       }
 
-      // Import ethers for fee calculation
-      const { parseEther } = await import('ethers');
-      
-      // Register name with fee
-      const tx = await ensContract.registerName(name, {
-        value: parseEther('0.01') // You might want to use the actual registrationFee
-      });
+      // Register name (using a default avatar for now)
+      const defaultAvatar = "https://api.dicebear.com/6.x/identicon/svg?seed=" + name;
+      const tx = await ensContract.createAccount(userAddress, defaultAvatar, name);
       
       setSuccess('Transaction submitted! Waiting for confirmation...');
       
@@ -230,17 +219,32 @@ const Web3ChatENS = () => {
 
   // Send message
   const sendMessage = async () => {
-    if (!chatContract || !newMessage.trim()) return;
+    if (!chatContract || !newMessage.trim() || !customName) {
+      setError('Please register an ENS name before sending messages');
+      return;
+    }
 
     try {
       setError(null);
       setIsSending(true);
 
-      const roomId = 0; // General room
-      const tx = await chatContract.sendMessage(roomId, newMessage.trim());
+      // For this example, we're sending to a general chat address
+      // In a real app, you'd want to implement recipient selection
+      const GENERAL_CHAT = "general";
+      
+      // Send message using the contract's sendMessage function
+      // Parameters: from (address), message (string), to (string - ENS name)
+      const tx = await chatContract.sendMessage(
+        userAddress,
+        newMessage.trim(),
+        GENERAL_CHAT
+      );
       
       setNewMessage('');
       await tx.wait();
+      
+      // Refresh messages after sending
+      await loadMessages();
       
     } catch (err) {
       setError('Failed to send message: ' + err.message);
