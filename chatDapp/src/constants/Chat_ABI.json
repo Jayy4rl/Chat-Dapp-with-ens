@@ -1,0 +1,120 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      { "name": "_ensAddress", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getCountOfMsg",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct Chat.Message[]",
+        "components": [
+          { "name": "from", "type": "address", "internalType": "address" },
+          { "name": "to", "type": "address", "internalType": "address" },
+          { "name": "message", "type": "string", "internalType": "string" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMessagesBetweenUsers",
+    "inputs": [
+      { "name": "_name1", "type": "string", "internalType": "string" },
+      { "name": "_name2", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct Chat.Message[]",
+        "components": [
+          { "name": "from", "type": "address", "internalType": "address" },
+          { "name": "to", "type": "address", "internalType": "address" },
+          { "name": "message", "type": "string", "internalType": "string" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserMessages",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct Chat.Message[]",
+        "components": [
+          { "name": "from", "type": "address", "internalType": "address" },
+          { "name": "to", "type": "address", "internalType": "address" },
+          { "name": "message", "type": "string", "internalType": "string" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "messages",
+    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      { "name": "from", "type": "address", "internalType": "address" },
+      { "name": "to", "type": "address", "internalType": "address" },
+      { "name": "message", "type": "string", "internalType": "string" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "msgCount",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "sendMessage",
+    "inputs": [
+      { "name": "_from", "type": "address", "internalType": "address" },
+      { "name": "_msg", "type": "string", "internalType": "string" },
+      { "name": "_to", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "MessageSent",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "message",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  }
+]

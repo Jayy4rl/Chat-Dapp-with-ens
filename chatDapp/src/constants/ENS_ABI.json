@@ -1,0 +1,115 @@
+[
+  {
+    "type": "function",
+    "name": "createAccount",
+    "inputs": [
+      { "name": "_from", "type": "address", "internalType": "address" },
+      { "name": "avatar", "type": "string", "internalType": "string" },
+      { "name": "name", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getAddressFromName",
+    "inputs": [{ "name": "_name", "type": "string", "internalType": "string" }],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAllUsers",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct ENS.User[]",
+        "components": [
+          { "name": "name", "type": "string", "internalType": "string" },
+          { "name": "avatar", "type": "string", "internalType": "string" },
+          { "name": "address_", "type": "address", "internalType": "address" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserFromAddress",
+    "inputs": [
+      { "name": "_address", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ENS.User",
+        "components": [
+          { "name": "name", "type": "string", "internalType": "string" },
+          { "name": "avatar", "type": "string", "internalType": "string" },
+          { "name": "address_", "type": "address", "internalType": "address" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserInfoFromName",
+    "inputs": [{ "name": "_name", "type": "string", "internalType": "string" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ENS.User",
+        "components": [
+          { "name": "name", "type": "string", "internalType": "string" },
+          { "name": "avatar", "type": "string", "internalType": "string" },
+          { "name": "address_", "type": "address", "internalType": "address" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "usernameExist",
+    "inputs": [{ "name": "_name", "type": "string", "internalType": "string" }],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "users",
+    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      { "name": "name", "type": "string", "internalType": "string" },
+      { "name": "avatar", "type": "string", "internalType": "string" },
+      { "name": "address_", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "UserRegistered",
+    "inputs": [
+      {
+        "name": "_address",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "indexed": true,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  { "type": "error", "name": "NAME_NOT_AVAILABLE", "inputs": [] },
+  { "type": "error", "name": "ZERO_ADDRESS_NOT_ALLOWED", "inputs": [] }
+]

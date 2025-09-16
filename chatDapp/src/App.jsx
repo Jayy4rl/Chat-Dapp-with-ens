@@ -1,26 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MessageCircle, User, Wallet, Send, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import ENS_CONTRACT_ABI from "./constants/ENS_ABI.json"
+import CHAT_CONTRACT_ABI from "./constants/Chat_ABI.json"
 
-// Contract ABIs (simplified for demo - you'll need the full ABIs)
-const ENS_CONTRACT_ABI = [
-  "function registerName(string memory name) external payable",
-  "function resolveNameToAddress(string memory name) external view returns (address)",
-  "function resolveAddressToName(address addr) external view returns (string memory)",
-  "function isNameAvailable(string memory name) external view returns (bool)",
-  "function registrationFee() external view returns (uint256)",
-  "event NameRegistered(string indexed name, address indexed owner, uint256 timestamp)"
-];
-
-const CHAT_CONTRACT_ABI = [
-  "function sendMessage(uint256 roomId, string memory content) external",
-  "function getRoomMessages(uint256 roomId, uint256 offset, uint256 limit) external view returns (tuple(address sender, string content, uint256 timestamp, uint256 messageId)[])",
-  "function getSenderDisplayName(address sender) external view returns (string memory)",
-  "event MessageSent(uint256 indexed roomId, address indexed sender, string content, uint256 timestamp)"
-];
-
-// Contract addresses (you'll need to deploy and update these)
-const ENS_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Example address
-const CHAT_CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Example address
+const ENS_CONTRACT_ADDRESS = "0x99a1Ade794A78a31Eb5B7393fa39cd0Ee3843c8C"; // Example address
+const CHAT_CONTRACT_ADDRESS = "0x6900E41257aB091d5950A5910d939E8B8E5C8D4F"; // Example address
 
 const Web3ChatENS = () => {
   // Wallet connection state
