@@ -1,120 +1,336 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, User, Wallet, Send, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MessageCircle, User, Wallet, Send, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 
-const SimpleChatENS = () => {
+// Contract ABIs (simplified for demo - you'll need the full ABIs)
+const ENS_CONTRACT_ABI = [
+  "function registerName(string memory name) external payable",
+  "function resolveNameToAddress(string memory name) external view returns (address)",
+  "function resolveAddressToName(address addr) external view returns (string memory)",
+  "function isNameAvailable(string memory name) external view returns (bool)",
+  "function registrationFee() external view returns (uint256)",
+  "event NameRegistered(string indexed name, address indexed owner, uint256 timestamp)"
+];
+
+const CHAT_CONTRACT_ABI = [
+  "function sendMessage(uint256 roomId, string memory content) external",
+  "function getRoomMessages(uint256 roomId, uint256 offset, uint256 limit) external view returns (tuple(address sender, string content, uint256 timestamp, uint256 messageId)[])",
+  "function getSenderDisplayName(address sender) external view returns (string memory)",
+  "event MessageSent(uint256 indexed roomId, address indexed sender, string content, uint256 timestamp)"
+];
+
+// Contract addresses (you'll need to deploy and update these)
+const ENS_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Example address
+const CHAT_CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Example address
+
+const Web3ChatENS = () => {
+  // Wallet connection state
+  const [wallets, setWallets] = useState([]);
+  const [selectedWallet, setSelectedWallet] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [userAddress, setUserAddress] = useState('');
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
+
+  // Contract state
+  const [ensContract, setEnsContract] = useState(null);
+  const [chatContract, setChatContract] = useState(null);
+  const [registrationFee, setRegistrationFee] = useState('0');
+
+  // App state
   const [customName, setCustomName] = useState('');
-  const [registeredNames, setRegisteredNames] = useState({});
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [registrationInput, setRegistrationInput] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState('');
 
-  // Load data from localStorage on component mount
-  useEffect(() => {
-    const savedNames = localStorage.getItem('registeredNames');
-    const savedMessages = localStorage.getItem('chatMessages');
-    
-    if (savedNames) {
-      setRegisteredNames(JSON.parse(savedNames));
+  // EIP-6963: Detect available wallets
+  const detectWallets = useCallback(() => {
+    const discoveredWallets = [];
+
+    // Listen for wallet announcements
+    const handleWalletAnnouncement = (event) => {
+      discoveredWallets.push(event.detail);
+      setWallets([...discoveredWallets]);
+    };
+
+    window.addEventListener('eip6963:announceProvider', handleWalletAnnouncement);
+
+    // Request wallet announcements
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+    // Fallback for MetaMask if EIP-6963 not supported
+    if (typeof window.ethereum !== 'undefined' && !discoveredWallets.length) {
+      const legacyWallet = {
+        info: {
+          name: 'MetaMask',
+          icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48L3N2Zz4='
+        },
+        provider: window.ethereum
+      };
+      discoveredWallets.push(legacyWallet);
+      setWallets([legacyWallet]);
     }
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
+
+    return () => {
+      window.removeEventListener('eip6963:announceProvider', handleWalletAnnouncement);
+    };
   }, []);
 
-  // Simulate wallet connection
-  const connectWallet = () => {
-    // Generate a mock wallet address
-    const mockAddress = '0x' + Math.random().toString(16).substr(2, 40);
-    setUserAddress(mockAddress);
-    setIsConnected(true);
-    
-    // Check if this address already has a registered name
-    const existingName = Object.keys(registeredNames).find(
-      name => registeredNames[name] === mockAddress
-    );
-    if (existingName) {
-      setCustomName(existingName);
+  // Initialize wallet detection
+  useEffect(() => {
+    const cleanup = detectWallets();
+    return cleanup;
+  }, [detectWallets]);
+
+  // Connect to selected wallet
+  const connectWallet = async (wallet) => {
+    try {
+      setError(null);
+      
+      // Import ethers dynamically
+      const { BrowserProvider, Contract } = await import('ethers');
+      
+      // Request account access
+      await wallet.provider.request({ method: 'eth_requestAccounts' });
+      
+      // Create provider and signer
+      const ethersProvider = new BrowserProvider(wallet.provider);
+      const ethersSigner = await ethersProvider.getSigner();
+      const address = await ethersSigner.getAddress();
+      
+      // Set wallet state
+      setSelectedWallet(wallet);
+      setProvider(ethersProvider);
+      setSigner(ethersSigner);
+      setUserAddress(address);
+      setIsConnected(true);
+
+      // Initialize contracts
+      const ens = new Contract(ENS_CONTRACT_ADDRESS, ENS_CONTRACT_ABI, ethersSigner);
+      const chat = new Contract(CHAT_CONTRACT_ADDRESS, CHAT_CONTRACT_ABI, ethersSigner);
+      
+      setEnsContract(ens);
+      setChatContract(chat);
+
+      // Get registration fee
+      try {
+        const fee = await ens.registrationFee();
+        setRegistrationFee(fee.toString());
+      } catch (err) {
+        console.log('Could not fetch registration fee:', err);
+      }
+
+      // Check if user already has a registered name
+      try {
+        const existingName = await ens.resolveAddressToName(address);
+        if (existingName) {
+          setCustomName(existingName);
+        }
+      } catch (err) {
+        console.log('No existing name found', err);
+      }
+
+      // Load initial messages
+      loadMessages();
+
+      // Listen for new messages
+      listenForMessages(chat);
+
+    } catch (err) {
+      setError('Failed to connect wallet: ' + err.message);
+      console.error('Wallet connection error:', err);
     }
   };
 
-  // Register a custom ENS name
-  const registerName = () => {
-    if (!registrationInput.trim()) {
-      alert('Please enter a name');
+  // Load chat messages
+  const loadMessages = async () => {
+    if (!chatContract) return;
+
+    try {
+      const roomId = 0; // General room
+      const limit = 50;
+      const offset = 0;
+      
+      const messages = await chatContract.getRoomMessages(roomId, offset, limit);
+      
+      const formattedMessages = await Promise.all(
+        messages.map(async (msg) => {
+          const displayName = await chatContract.getSenderDisplayName(msg.sender);
+          return {
+            id: msg.messageId.toString(),
+            sender: displayName || `${msg.sender.slice(0, 6)}...${msg.sender.slice(-4)}`,
+            senderAddress: msg.sender,
+            content: msg.content,
+            timestamp: new Date(Number(msg.timestamp) * 1000).toLocaleTimeString()
+          };
+        })
+      );
+
+      setMessages(formattedMessages);
+    } catch (err) {
+      console.error('Error loading messages:', err);
+    }
+  };
+
+  // Listen for new messages
+  const listenForMessages = (contract) => {
+    if (!contract) return;
+
+    const filter = contract.filters.MessageSent(0); // Room 0
+    contract.on(filter, async (roomId, sender, content, timestamp, event) => {
+      try {
+        const displayName = await contract.getSenderDisplayName(sender);
+        const newMessage = {
+          id: event.log.transactionHash + event.log.logIndex,
+          sender: displayName || `${sender.slice(0, 6)}...${sender.slice(-4)}`,
+          senderAddress: sender,
+          content: content,
+          timestamp: new Date(Number(timestamp) * 1000).toLocaleTimeString()
+        };
+        
+        setMessages(prev => [...prev, newMessage]);
+      } catch (err) {
+        console.error('Error processing new message:', err);
+      }
+    });
+  };
+
+  // Register custom name
+  const registerName = async () => {
+    if (!ensContract || !registrationInput.trim()) {
+      setError('Please enter a name');
       return;
     }
 
-    const nameToRegister = registrationInput.trim().toLowerCase();
-    
-    // Check if name is already taken
-    if (registeredNames[nameToRegister]) {
-      alert('This name is already taken!');
-      return;
+    try {
+      setError(null);
+      setSuccess('');
+      setIsRegistering(true);
+
+      const name = registrationInput.trim().toLowerCase();
+      
+      // Check if name is available
+      const isAvailable = await ensContract.isNameAvailable(name);
+      if (!isAvailable) {
+        setError('This name is already taken');
+        return;
+      }
+
+      // Import ethers for fee calculation
+      const { parseEther } = await import('ethers');
+      
+      // Register name with fee
+      const tx = await ensContract.registerName(name, {
+        value: parseEther('0.01') // You might want to use the actual registrationFee
+      });
+      
+      setSuccess('Transaction submitted! Waiting for confirmation...');
+      
+      // Wait for transaction confirmation
+      await tx.wait();
+      
+      setCustomName(name);
+      setRegistrationInput('');
+      setSuccess(`Successfully registered ${name}.myens!`);
+      
+    } catch (err) {
+      setError('Registration failed: ' + err.message);
+      console.error('Registration error:', err);
+    } finally {
+      setIsRegistering(false);
     }
-
-    // Register the name
-    const newRegisteredNames = {
-      ...registeredNames,
-      [nameToRegister]: userAddress
-    };
-    
-    setRegisteredNames(newRegisteredNames);
-    setCustomName(nameToRegister);
-    setRegistrationInput('');
-    
-    // Save to localStorage
-    localStorage.setItem('registeredNames', JSON.stringify(newRegisteredNames));
-    
-    alert(`Successfully registered ${nameToRegister}.myens!`);
   };
 
-  // Send a message
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
+  // Send message
+  const sendMessage = async () => {
+    if (!chatContract || !newMessage.trim()) return;
 
-    const message = {
-      id: Date.now(),
-      sender: customName || userAddress,
-      senderAddress: userAddress,
-      content: newMessage,
-      timestamp: new Date().toLocaleTimeString()
-    };
+    try {
+      setError(null);
+      setIsSending(true);
 
-    const updatedMessages = [...messages, message];
-    setMessages(updatedMessages);
-    setNewMessage('');
-    
-    // Save to localStorage
-    localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
+      const roomId = 0; // General room
+      const tx = await chatContract.sendMessage(roomId, newMessage.trim());
+      
+      setNewMessage('');
+      await tx.wait();
+      
+    } catch (err) {
+      setError('Failed to send message: ' + err.message);
+      console.error('Send message error:', err);
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  // Get display name for an address
-  const getDisplayName = (address) => {
-    const name = Object.keys(registeredNames).find(
-      name => registeredNames[name] === address
-    );
-    return name ? `${name}.myens` : `${address.slice(0, 6)}...${address.slice(-4)}`;
+  // Disconnect wallet
+  const disconnectWallet = () => {
+    setSelectedWallet(null);
+    setProvider(null);
+    setSigner(null);
+    setUserAddress('');
+    setIsConnected(false);
+    setEnsContract(null);
+    setChatContract(null);
+    setCustomName('');
+    setMessages([]);
   };
 
+  // Wallet selection screen
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="mb-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="text-center mb-6">
             <MessageCircle className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Chat dApp</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Web3 Chat dApp</h1>
             <p className="text-gray-600">Connect your wallet to start chatting with custom ENS names</p>
           </div>
           
-          <button
-            onClick={connectWallet}
-            className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <Wallet className="w-5 h-5" />
-            Connect Wallet
-          </button>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600" />
+              <span className="text-red-700 text-sm">{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {wallets.length === 0 ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-2" />
+                <p className="text-gray-500">Detecting wallets...</p>
+              </div>
+            ) : (
+              wallets.map((wallet, index) => (
+                <button
+                  key={index}
+                  onClick={() => connectWallet(wallet)}
+                  className="w-full flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <img 
+                    src={wallet.info.icon} 
+                    alt={wallet.info.name} 
+                    className="w-8 h-8"
+                    onError={(e) => {
+                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNGM0Y0RjYiLz48L3N2Zz4=';
+                    }}
+                  />
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900">{wallet.info.name}</div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+          
+          {wallets.length === 0 && (
+            <p className="text-xs text-gray-500 text-center mt-4">
+              Make sure you have a Web3 wallet installed (MetaMask, Rainbow, etc.)
+            </p>
+          )}
         </div>
       </div>
     );
@@ -128,7 +344,7 @@ const SimpleChatENS = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <MessageCircle className="w-8 h-8 text-indigo-600" />
-              <h1 className="text-xl font-bold text-gray-900">Chat dApp</h1>
+              <h1 className="text-xl font-bold text-gray-900">Web3 Chat dApp</h1>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
@@ -142,6 +358,12 @@ const SimpleChatENS = () => {
               <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
                 <User className="w-4 h-4 text-white" />
               </div>
+              <button
+                onClick={disconnectWallet}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Disconnect
+              </button>
             </div>
           </div>
         </div>
@@ -168,16 +390,28 @@ const SimpleChatENS = () => {
                     onChange={(e) => setRegistrationInput(e.target.value)}
                     placeholder="myname"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={isRegistering}
                   />
                   <span className="flex items-center text-gray-500 text-sm">.myens</span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Registration fee: 0.01 ETH
+                </p>
               </div>
               
               <button
                 onClick={registerName}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                disabled={isRegistering || !registrationInput.trim()}
+                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Register Name
+                {isRegistering ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  'Register Name'
+                )}
               </button>
             </div>
           ) : (
@@ -190,30 +424,28 @@ const SimpleChatENS = () => {
             </div>
           )}
 
-          {/* Registered Names List */}
-          <div className="mt-6">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Registered Names</h3>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {Object.keys(registeredNames).length === 0 ? (
-                <p className="text-xs text-gray-500">No names registered yet</p>
-              ) : (
-                Object.keys(registeredNames).map((name) => (
-                  <div key={name} className="text-xs text-gray-600 flex justify-between">
-                    <span>{name}.myens</span>
-                    <span>{registeredNames[name].slice(0, 6)}...</span>
-                  </div>
-                ))
-              )}
+          {/* Status Messages */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <span className="text-red-700 text-sm">{error}</span>
             </div>
-          </div>
+          )}
+
+          {success && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+              <span className="text-green-700 text-sm">{success}</span>
+            </div>
+          )}
         </div>
 
         {/* Chat Panel */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm flex flex-col h-96">
           {/* Chat Header */}
           <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">Global Chat</h2>
-            <p className="text-sm text-gray-500">Chat with custom ENS names</p>
+            <h2 className="text-lg font-semibold text-gray-900">General Chat</h2>
+            <p className="text-sm text-gray-500">Chat with your custom ENS name on-chain</p>
           </div>
 
           {/* Messages */}
@@ -232,7 +464,7 @@ const SimpleChatENS = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-gray-900 text-sm">
-                        {getDisplayName(message.senderAddress)}
+                        {message.sender}
                       </span>
                       <span className="text-xs text-gray-500">{message.timestamp}</span>
                     </div>
@@ -250,15 +482,21 @@ const SimpleChatENS = () => {
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                onKeyPress={(e) => e.key === 'Enter' && !isSending && sendMessage()}
                 placeholder="Type your message..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={isSending}
               />
               <button
                 onClick={sendMessage}
-                className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                disabled={isSending || !newMessage.trim()}
+                className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                <Send className="w-4 h-4" />
+                {isSending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
@@ -268,4 +506,4 @@ const SimpleChatENS = () => {
   );
 };
 
-export default SimpleChatENS;
+export default Web3ChatENS;
