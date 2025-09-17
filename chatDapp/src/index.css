@@ -1,68 +1,217 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --primary-color: #646cff;
+  --secondary-color: #535bf2;
+  --background-dark: #1a1a1a;
+  --background-light: #ffffff;
+  --text-dark: #213547;
+  --text-light: rgba(255, 255, 255, 0.87);
+  --error-color: #ff4444;
+  --success-color: #00c853;
+  --border-radius: 8px;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  background-color: var(--background-dark);
+  color: var(--text-light);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.container {
+  max-width: 1200px;
+  width: 100%;
+  padding: 2rem;
+  margin: 0 auto;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+/* Wallet Section Styles */
+.wallet-section {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.wallet-list {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.wallet-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--background-dark);
+  border: 1px solid var(--primary-color);
+  color: var(--text-light);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: all 0.3s ease;
 }
 
+.wallet-button:hover {
+  background: var(--primary-color);
+  color: var(--background-light);
+}
+
+/* Registration Section Styles */
+.registration-section {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.input-group {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-light);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Chat Section Styles */
+.chat-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  height: 60vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.message {
+  margin: 1rem 0;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  max-width: 80%;
+}
+
+.message.sent {
+  background: var(--primary-color);
+  margin-left: auto;
+}
+
+.message.received {
+  background: rgba(255, 255, 255, 0.1);
+  margin-right: auto;
+}
+
+.message-input {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.send-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary-color);
+  color: var(--background-light);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.send-button:hover {
+  background: var(--secondary-color);
+}
+
+/* Status Messages */
+.error {
+  color: var(--error-color);
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  border-radius: var(--border-radius);
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.success {
+  color: var(--success-color);
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  border-radius: var(--border-radius);
+  background: rgba(0, 200, 83, 0.1);
+}
+
+/* Loading States */
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-color);
+}
+
+.loading svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Light Theme */
 @media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+  body {
+    background-color: var(--background-light);
+    color: var(--text-dark);
   }
-  a:hover {
-    color: #747bff;
+
+  .wallet-section,
+  .registration-section,
+  .chat-section {
+    background: rgba(0, 0, 0, 0.05);
   }
-  button {
-    background-color: #f9f9f9;
+
+  input {
+    background: var(--background-light);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: var(--text-dark);
+  }
+
+  .message.received {
+    background: rgba(0, 0, 0, 0.1);
   }
 }

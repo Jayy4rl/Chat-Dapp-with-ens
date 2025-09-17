@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MessageCircle, User, Wallet, Send, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import ENS_CONTRACT_ABI from "./constants/ENS_ABI.json"
 import CHAT_CONTRACT_ABI from "./constants/Chat_ABI.json"
@@ -14,6 +14,9 @@ const Web3ChatENS = () => {
   const [userAddress, setUserAddress] = useState('');
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
+
+  // Reference for message container to auto-scroll to bottom
+  const messagesEndRef = useRef(null);
 
   // Contract state
   const [ensContract, setEnsContract] = useState(null);
@@ -270,33 +273,30 @@ const Web3ChatENS = () => {
   // Wallet selection screen
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-          <div className="text-center mb-6">
-            <MessageCircle className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Web3 Chat dApp</h1>
-            <p className="text-gray-600">Connect your wallet to start chatting with custom ENS names</p>
-          </div>
+      <div className="container">
+        <div className="wallet-section">
+          <h1>Web3 Chat dApp</h1>
+          <p>Connect your wallet to start chatting with custom ENS names</p>
           
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-600" />
-              <span className="text-red-700 text-sm">{error}</span>
+            <div className="error">
+              <AlertTriangle className="w-4 h-4" />
+              <span>{error}</span>
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="wallet-list">
             {wallets.length === 0 ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-2" />
-                <p className="text-gray-500">Detecting wallets...</p>
+              <div className="loading">
+                <Loader2 className="w-8 h-8" />
+                <p>Detecting wallets...</p>
               </div>
             ) : (
               wallets.map((wallet, index) => (
                 <button
                   key={index}
                   onClick={() => connectWallet(wallet)}
-                  className="w-full flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="wallet-button"
                 >
                   <img 
                     src={wallet.info.icon} 
@@ -306,18 +306,14 @@ const Web3ChatENS = () => {
                       e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNGM0Y0RjYiLz48L3N2Zz4=';
                     }}
                   />
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900">{wallet.info.name}</div>
-                  </div>
+                  <span>{wallet.info.name}</span>
                 </button>
               ))
             )}
           </div>
           
           {wallets.length === 0 && (
-            <p className="text-xs text-gray-500 text-center mt-4">
-              Make sure you have a Web3 wallet installed (MetaMask, Rainbow, etc.)
-            </p>
+            <p>Make sure you have a Web3 wallet installed (MetaMask, Rainbow, etc.)</p>
           )}
         </div>
       </div>
@@ -325,169 +321,126 @@ const Web3ChatENS = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="container">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MessageCircle className="w-8 h-8 text-indigo-600" />
-              <h1 className="text-xl font-bold text-gray-900">Web3 Chat dApp</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {customName ? `${customName}.myens` : 'No ENS name'}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
-                </div>
+      <div className="wallet-section">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-6 h-6" />
+            <h1>Web3 Chat dApp</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <div>
+              <div>
+                {customName ? `${customName}.myens` : 'No ENS name'}
               </div>
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
+              <div className="text-sm opacity-75">
+                {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
               </div>
-              <button
-                onClick={disconnectWallet}
-                className="text-xs text-gray-500 hover:text-gray-700"
-              >
-                Disconnect
-              </button>
             </div>
+            <button
+              onClick={disconnectWallet}
+              className="wallet-button"
+            >
+              Disconnect
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Registration Panel */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            Register ENS Name
-          </h2>
-          
-          {!customName ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Choose your custom name
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={registrationInput}
-                    onChange={(e) => setRegistrationInput(e.target.value)}
-                    placeholder="myname"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    disabled={isRegistering}
-                  />
-                  <span className="flex items-center text-gray-500 text-sm">.myens</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Registration fee: 0.01 ETH
-                </p>
-              </div>
-              
+      {/* Registration Section */}
+      <div className="registration-section">
+        <h2>
+          <CheckCircle className="w-5 h-5" />
+          Register ENS Name
+        </h2>
+        
+        {!customName ? (
+          <div>
+            <div className="input-group">
+              <input
+                type="text"
+                value={registrationInput}
+                onChange={(e) => setRegistrationInput(e.target.value)}
+                placeholder="Enter your desired name"
+                disabled={isRegistering}
+              />
               <button
+                className="wallet-button"
                 onClick={registerName}
                 disabled={isRegistering || !registrationInput.trim()}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isRegistering ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Registering...
-                  </>
+                  <div className="loading">
+                    <Loader2 className="w-4 h-4" />
+                    <span>Registering...</span>
+                  </div>
                 ) : (
                   'Register Name'
                 )}
               </button>
             </div>
+            <p>Registration fee: {registrationFee} ETH</p>
+          </div>
+        ) : (
+          <div className="success">
+            <CheckCircle className="w-5 h-5" />
+            <p>Registered as: {customName}.myens</p>
+          </div>
+        )}
+
+        {/* Status Messages */}
+        {error && <div className="error">{error}</div>}
+        {success && <div className="success">{success}</div>}
+      </div>
+
+      {/* Chat Section */}
+      <div className="chat-section">
+        <div className="messages-container" ref={messagesEndRef}>
+          {messages.length === 0 ? (
+            <div className="text-center">
+              <MessageCircle className="w-8 h-8" />
+              <p>No messages yet. Start the conversation!</p>
+            </div>
           ) : (
-            <div className="text-center py-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`message ${
+                  message.senderAddress === userAddress ? 'sent' : 'received'
+                }`}
+              >
+                <p className="text-sm">{message.sender}</p>
+                <p>{message.content}</p>
+                <p className="text-xs opacity-75">{message.timestamp}</p>
               </div>
-              <h3 className="font-medium text-gray-900 mb-1">Name Registered!</h3>
-              <p className="text-sm text-gray-600">{customName}.myens</p>
-            </div>
-          )}
-
-          {/* Status Messages */}
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
-              <span className="text-red-700 text-sm">{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-              <span className="text-green-700 text-sm">{success}</span>
-            </div>
+            ))
           )}
         </div>
 
-        {/* Chat Panel */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm flex flex-col h-96">
-          {/* Chat Header */}
-          <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">General Chat</h2>
-            <p className="text-sm text-gray-500">Chat with your custom ENS name on-chain</p>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3">
-            {messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No messages yet. Start the conversation!</p>
-              </div>
+        <div className="message-input">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !isSending && sendMessage()}
+            placeholder="Type your message..."
+            disabled={isSending}
+          />
+          <button
+            className="send-button"
+            onClick={sendMessage}
+            disabled={isSending || !newMessage.trim()}
+          >
+            {isSending ? (
+              <Loader2 className="w-4 h-4" />
             ) : (
-              messages.map((message) => (
-                <div key={message.id} className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-900 text-sm">
-                        {message.sender}
-                      </span>
-                      <span className="text-xs text-gray-500">{message.timestamp}</span>
-                    </div>
-                    <p className="text-gray-800 text-sm">{message.content}</p>
-                  </div>
-                </div>
-              ))
+              <>
+                <Send className="w-4 h-4" />
+                <span>Send</span>
+              </>
             )}
-          </div>
-
-          {/* Message Input */}
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !isSending && sendMessage()}
-                placeholder="Type your message..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                disabled={isSending}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={isSending || !newMessage.trim()}
-                className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {isSending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-          </div>
+          </button>
         </div>
       </div>
     </div>
