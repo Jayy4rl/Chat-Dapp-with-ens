@@ -3,10 +3,7 @@ import { MessageCircle, User, Wallet, Send, CheckCircle, AlertTriangle, Loader2 
 import ENS_CONTRACT_ABI from "./constants/ENS_ABI.json"
 import CHAT_CONTRACT_ABI from "./constants/Chat_ABI.json"
 
-const ENS_CONTRACT_ADDRESS = "0x99a1Ade794A78a31Eb5B7393fa39cd0Ee3843c8C";
-const CHAT_CONTRACT_ADDRESS = "0x6900E41257aB091d5950A5910d939E8B8E5C8D4F";
-
-const Web3ChatENS = () => {
+function App() {
   // Wallet connection state
   const [wallets, setWallets] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState(null);
@@ -21,7 +18,6 @@ const Web3ChatENS = () => {
   // Contract state
   const [ensContract, setEnsContract] = useState(null);
   const [chatContract, setChatContract] = useState(null);
-  const [registrationFee, setRegistrationFee] = useState('0');
 
   // App state
   const [customName, setCustomName] = useState('');
@@ -32,6 +28,9 @@ const Web3ChatENS = () => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState('');
+
+  const ENS_CONTRACT_ADDRESS = "0xaBe6D4e4B136eca99A3bB8A8674A9a7630f497D2";
+  const CHAT_CONTRACT_ADDRESS = "0x238b74368fD057AEc35Bc7D692483a2A24994EB1";
 
   // EIP-6963: Detect available wallets
   const detectWallets = useCallback(() => {
@@ -86,14 +85,6 @@ const Web3ChatENS = () => {
       
       setEnsContract(ens);
       setChatContract(chat);
-
-      // Get registration fee
-      try {
-        const fee = await ens.registrationFee();
-        setRegistrationFee(fee.toString());
-      } catch (err) {
-        console.log('Could not fetch registration fee:', err);
-      }
 
       // Check if user already has a registered name
       try {
@@ -192,14 +183,7 @@ const Web3ChatENS = () => {
 
       const name = registrationInput.trim().toLowerCase();
       
-      // Check if name is available
-      const isNameTaken = await ensContract.usernameExist(name);
-      if (isNameTaken) {
-        setError('This name is already taken');
-        return;
-      }
 
-      // Register name (using a default avatar for now)
       const defaultAvatar = "https://api.dicebear.com/6.x/identicon/svg?seed=" + name;
       const tx = await ensContract.createAccount(userAddress, defaultAvatar, name);
       
@@ -231,12 +215,8 @@ const Web3ChatENS = () => {
       setError(null);
       setIsSending(true);
 
-      // For this example, we're sending to a general chat address
-      // In a real app, you'd want to implement recipient selection
       const GENERAL_CHAT = "general";
       
-      // Send message using the contract's sendMessage function
-      // Parameters: from (address), message (string), to (string - ENS name)
       const tx = await chatContract.sendMessage(
         userAddress,
         newMessage.trim(),
@@ -348,7 +328,6 @@ const Web3ChatENS = () => {
         </div>
       </div>
 
-      {/* Registration Section */}
       <div className="registration-section">
         <h2>
           <CheckCircle className="w-5 h-5" />
@@ -380,7 +359,6 @@ const Web3ChatENS = () => {
                 )}
               </button>
             </div>
-            <p>Registration fee: {registrationFee} ETH</p>
           </div>
         ) : (
           <div className="success">
@@ -447,4 +425,4 @@ const Web3ChatENS = () => {
   );
 };
 
-export default Web3ChatENS;
+export default App;

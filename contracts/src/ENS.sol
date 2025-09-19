@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.13;
 
 contract ENS {
@@ -8,61 +8,58 @@ contract ENS {
     struct User {
         string name;
         string avatar;
-        address address_;
+        address _address;
     }
 
     event UserRegistered(address indexed _address, string indexed name);
-
-    mapping(address => User) addressToUserInfo;
-
-    mapping(string => address) nameToAddress;
+    mapping(address => User) userInfo;
+    mapping(string => address) names;
 
     User[] public users;
 
     function createAccount(
         address _from,
-        string calldata avatar,
-        string calldata name
+        string calldata _avatar,
+        string calldata _name
     ) external {
         if (_from == address(0)) {
             revert ZERO_ADDRESS_NOT_ALLOWED();
         }
-        if (nameToAddress[name] != address(0)) {
+        if (names[_name] != address(0)) {
             revert NAME_NOT_AVAILABLE();
         }
 
-        nameToAddress[name] = _from;
+        names[_name] = _from;
 
-        User storage _newUserInfo = addressToUserInfo[_from];
-        _newUserInfo.avatar = avatar;
-        _newUserInfo.name = name;
-        _newUserInfo.address_ = _from;
+        User storage _newUser = userInfo[_from];
+        _newUser.name = _name;
+        _newUser.avatar = _avatar;
+        _newUser._address = _from;
 
-        users.push(_newUserInfo);
-
-        emit UserRegistered(_from, name);
+        users.push(_newUser);
+        emit UserRegistered(_from, _name);
     }
 
     function getUserFromAddress(
         address _address
     ) external view returns (User memory) {
-        return addressToUserInfo[_address];
+        return userInfo[_address];
     }
 
-    function getUserInfoFromName(
+    function getUserFromName(
         string calldata _name
     ) external view returns (User memory) {
-        return addressToUserInfo[nameToAddress[_name]];
+        return userInfo[names[_name]];
     }
 
     function getAddressFromName(
         string calldata _name
     ) external view returns (address) {
-        return nameToAddress[_name];
+        return names[_name];
     }
 
-    function usernameExist(string calldata _name) external view returns (bool) {
-        return nameToAddress[_name] != address(0);
+    function userExists(string calldata _name) external view returns (bool) {
+        return names[_name] != address(0);
     }
 
     function getAllUsers() external view returns (User[] memory) {

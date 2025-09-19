@@ -4,8 +4,8 @@
     "name": "createAccount",
     "inputs": [
       { "name": "_from", "type": "address", "internalType": "address" },
-      { "name": "avatar", "type": "string", "internalType": "string" },
-      { "name": "name", "type": "string", "internalType": "string" }
+      { "name": "_avatar", "type": "string", "internalType": "string" },
+      { "name": "_name", "type": "string", "internalType": "string" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -29,7 +29,7 @@
         "components": [
           { "name": "name", "type": "string", "internalType": "string" },
           { "name": "avatar", "type": "string", "internalType": "string" },
-          { "name": "address_", "type": "address", "internalType": "address" }
+          { "name": "_address", "type": "address", "internalType": "address" }
         ]
       }
     ],
@@ -49,7 +49,7 @@
         "components": [
           { "name": "name", "type": "string", "internalType": "string" },
           { "name": "avatar", "type": "string", "internalType": "string" },
-          { "name": "address_", "type": "address", "internalType": "address" }
+          { "name": "_address", "type": "address", "internalType": "address" }
         ]
       }
     ],
@@ -57,7 +57,7 @@
   },
   {
     "type": "function",
-    "name": "getUserInfoFromName",
+    "name": "getUserFromName",
     "inputs": [{ "name": "_name", "type": "string", "internalType": "string" }],
     "outputs": [
       {
@@ -67,7 +67,7 @@
         "components": [
           { "name": "name", "type": "string", "internalType": "string" },
           { "name": "avatar", "type": "string", "internalType": "string" },
-          { "name": "address_", "type": "address", "internalType": "address" }
+          { "name": "_address", "type": "address", "internalType": "address" }
         ]
       }
     ],
@@ -75,7 +75,7 @@
   },
   {
     "type": "function",
-    "name": "usernameExist",
+    "name": "userExists",
     "inputs": [{ "name": "_name", "type": "string", "internalType": "string" }],
     "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "view"
@@ -87,7 +87,7 @@
     "outputs": [
       { "name": "name", "type": "string", "internalType": "string" },
       { "name": "avatar", "type": "string", "internalType": "string" },
-      { "name": "address_", "type": "address", "internalType": "address" }
+      { "name": "_address", "type": "address", "internalType": "address" }
     ],
     "stateMutability": "view"
   },

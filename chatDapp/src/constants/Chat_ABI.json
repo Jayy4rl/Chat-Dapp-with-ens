@@ -8,6 +8,26 @@
   },
   {
     "type": "function",
+    "name": "addToGroup",
+    "inputs": [
+      { "name": "_groupName", "type": "string", "internalType": "string" },
+      { "name": "_memberName", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createGroup",
+    "inputs": [
+      { "name": "_groupName", "type": "string", "internalType": "string" },
+      { "name": "_message", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "getCountOfMsg",
     "inputs": [],
     "outputs": [
@@ -18,7 +38,29 @@
         "components": [
           { "name": "from", "type": "address", "internalType": "address" },
           { "name": "to", "type": "address", "internalType": "address" },
-          { "name": "message", "type": "string", "internalType": "string" }
+          { "name": "message", "type": "string", "internalType": "string" },
+          { "name": "groupName", "type": "string", "internalType": "string" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getGroupMessages",
+    "inputs": [
+      { "name": "_groupName", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct Chat.Message[]",
+        "components": [
+          { "name": "from", "type": "address", "internalType": "address" },
+          { "name": "to", "type": "address", "internalType": "address" },
+          { "name": "message", "type": "string", "internalType": "string" },
+          { "name": "groupName", "type": "string", "internalType": "string" }
         ]
       }
     ],
@@ -39,7 +81,8 @@
         "components": [
           { "name": "from", "type": "address", "internalType": "address" },
           { "name": "to", "type": "address", "internalType": "address" },
-          { "name": "message", "type": "string", "internalType": "string" }
+          { "name": "message", "type": "string", "internalType": "string" },
+          { "name": "groupName", "type": "string", "internalType": "string" }
         ]
       }
     ],
@@ -57,10 +100,28 @@
         "components": [
           { "name": "from", "type": "address", "internalType": "address" },
           { "name": "to", "type": "address", "internalType": "address" },
-          { "name": "message", "type": "string", "internalType": "string" }
+          { "name": "message", "type": "string", "internalType": "string" },
+          { "name": "groupName", "type": "string", "internalType": "string" }
         ]
       }
     ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "groupMembers",
+    "inputs": [
+      { "name": "", "type": "string", "internalType": "string" },
+      { "name": "", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "groupOwners",
+    "inputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
     "stateMutability": "view"
   },
   {
@@ -70,7 +131,8 @@
     "outputs": [
       { "name": "from", "type": "address", "internalType": "address" },
       { "name": "to", "type": "address", "internalType": "address" },
-      { "name": "message", "type": "string", "internalType": "string" }
+      { "name": "message", "type": "string", "internalType": "string" },
+      { "name": "groupName", "type": "string", "internalType": "string" }
     ],
     "stateMutability": "view"
   },
@@ -83,6 +145,16 @@
   },
   {
     "type": "function",
+    "name": "sendGroupMessage",
+    "inputs": [
+      { "name": "_groupName", "type": "string", "internalType": "string" },
+      { "name": "_message", "type": "string", "internalType": "string" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "sendMessage",
     "inputs": [
       { "name": "_from", "type": "address", "internalType": "address" },
@@ -91,6 +163,31 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "GroupMessageSent",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "groupName",
+        "type": "string",
+        "indexed": true,
+        "internalType": "string"
+      },
+      {
+        "name": "message",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
