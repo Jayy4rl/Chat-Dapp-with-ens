@@ -302,123 +302,132 @@ function App() {
 
   return (
     <div className="container">
-      {/* Header */}
-      <div className="wallet-section">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="w-6 h-6" />
-            <h1>Web3 Chat dApp</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <div>
-              <div>
-                {customName ? `${customName}.myens` : 'No ENS name'}
-              </div>
-              <div className="text-sm opacity-75">
-                {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+      {/* Main Chat Interface */}
+      <div className="chat-app">
+        {/* Left Sidebar */}
+        <div className="sidebar">
+          <div className="user-profile">
+            <div className="user-avatar">
+              {customName ? customName[0].toUpperCase() : '?'}
+            </div>
+            <div className="user-info">
+              <h3>{customName ? `${customName}.myens` : 'No ENS name'}</h3>
+              <p>{userAddress.slice(0, 6)}...{userAddress.slice(-4)}</p>
+              <div className="connection-status">
+                <div className="status-dot"></div>
+                <span>Connected</span>
               </div>
             </div>
+          </div>
+
+          {/* ENS Registration Section */}
+          <div className="ens-section">
+            <h4>
+              <CheckCircle className="w-4 h-4" />
+              {customName ? 'ENS Name Registered' : 'Register ENS Name'}
+            </h4>
+            
+            {!customName ? (
+              <div className="input-group">
+                <input
+                  type="text"
+                  value={registrationInput}
+                  onChange={(e) => setRegistrationInput(e.target.value)}
+                  placeholder="Enter your desired name"
+                  disabled={isRegistering}
+                />
+                <button
+                  className="btn-primary"
+                  onClick={registerName}
+                  disabled={isRegistering || !registrationInput.trim()}
+                >
+                  {isRegistering ? (
+                    <div className="loading">
+                      <Loader2 className="spinner" />
+                      <span>Registering...</span>
+                    </div>
+                  ) : (
+                    'Register Name'
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="success">
+                <CheckCircle className="w-4 h-4" />
+                <p>Registered as: {customName}.myens</p>
+              </div>
+            )}
+
+            {error && <div className="error">{error}</div>}
+            {success && <div className="success">{success}</div>}
+
             <button
               onClick={disconnectWallet}
-              className="wallet-button"
+              className="btn-secondary"
+              style={{ marginTop: '12px' }}
             >
-              Disconnect
+              Disconnect Wallet
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="registration-section">
-        <h2>
-          <CheckCircle className="w-5 h-5" />
-          Register ENS Name
-        </h2>
-        
-        {!customName ? (
-          <div>
-            <div className="input-group">
-              <input
-                type="text"
-                value={registrationInput}
-                onChange={(e) => setRegistrationInput(e.target.value)}
-                placeholder="Enter your desired name"
-                disabled={isRegistering}
-              />
-              <button
-                className="wallet-button"
-                onClick={registerName}
-                disabled={isRegistering || !registrationInput.trim()}
-              >
-                {isRegistering ? (
-                  <div className="loading">
-                    <Loader2 className="w-4 h-4" />
-                    <span>Registering...</span>
-                  </div>
-                ) : (
-                  'Register Name'
-                )}
-              </button>
-            </div>
+        {/* Main Chat Area */}
+        <div className="chat-main">
+          <div className="chat-header">
+            <h2>Web3 Chat dApp</h2>
+            <p>Chat with other ENS users</p>
           </div>
-        ) : (
-          <div className="success">
-            <CheckCircle className="w-5 h-5" />
-            <p>Registered as: {customName}.myens</p>
-          </div>
-        )}
 
-        {/* Status Messages */}
-        {error && <div className="error">{error}</div>}
-        {success && <div className="success">{success}</div>}
-      </div>
-
-      {/* Chat Section */}
-      <div className="chat-section">
-        <div className="messages-container" ref={messagesEndRef}>
-          {messages.length === 0 ? (
-            <div className="text-center">
-              <MessageCircle className="w-8 h-8" />
-              <p>No messages yet. Start the conversation!</p>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`message ${
-                  message.senderAddress === userAddress ? 'sent' : 'received'
-                }`}
-              >
-                <p className="text-sm">{message.sender}</p>
-                <p>{message.content}</p>
-                <p className="text-xs opacity-75">{message.timestamp}</p>
+          <div className="chat-messages" ref={messagesEndRef}>
+            {messages.length === 0 ? (
+              <div className="empty-state">
+                <MessageCircle className="w-12 h-12" />
+                <p>No messages yet. Start the conversation!</p>
               </div>
-            ))
-          )}
-        </div>
-
-        <div className="message-input">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !isSending && sendMessage()}
-            placeholder="Type your message..."
-            disabled={isSending}
-          />
-          <button
-            className="send-button"
-            onClick={sendMessage}
-            disabled={isSending || !newMessage.trim()}
-          >
-            {isSending ? (
-              <Loader2 className="w-4 h-4" />
             ) : (
-              <>
-                <Send className="w-4 h-4" />
-                <span>Send</span>
-              </>
+              messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`message ${
+                    message.senderAddress === userAddress ? 'sent' : 'received'
+                  }`}
+                >
+                  <div className="message-header">
+                    <span className="message-sender">{message.sender}</span>
+                    <span className="message-time">{message.timestamp}</span>
+                  </div>
+                  <div className="message-content">{message.content}</div>
+                </div>
+              ))
             )}
-          </button>
+          </div>
+
+          <div className="chat-input">
+            <textarea
+              className="message-input"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  !isSending && sendMessage();
+                }
+              }}
+              placeholder="Type your message..."
+              disabled={isSending}
+            />
+            <button
+              className="send-btn"
+              onClick={sendMessage}
+              disabled={isSending || !newMessage.trim()}
+            >
+              {isSending ? (
+                <Loader2 className="w-4 h-4 spinner" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
